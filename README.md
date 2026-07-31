@@ -5,7 +5,7 @@ Theme: Space — Satellite Ground Station (S-Band Comms / Command & Control), ta
 
 - **Wokwi:** (https://wokwi.com/projects/471037581910912001)
 -  **Pages:** https://alexandernatale.github.io/Satellite-ground-station/
--  **Video:** 
+-  **Video:** https://youtu.be/BEfm5XCs_7o
 
 ---
 
