@@ -12,7 +12,8 @@
  *   App 3 method  -- ISR entry timestamp + GPIO scope pulse, latency measured
  *                     on the ground-command wake path.
  *   App 2 method  -- MEASURE_WCET wrapped around ground_command_task and
- *                     telemetry_framer_task.
+ *                     telemetry_framer_task. subsystem_task uses manual
+ *                     timing instead -- see note above subsystem_task().
  *   App 5 concept -- comms_queue: subsystem tasks hand a telemetry packet to
  *                     a framer task over a FreeRTOS queue instead of just
  *                     logging in place.
@@ -98,7 +99,7 @@ static volatile uint32_t frames_dropped;
     if ((uint64_t)_dt > (_max_var)) (_max_var) = (uint64_t)_dt;  \
 } while (0)
 
-static uint64_t wcet_gc_max_us, wcet_frame_max_us;
+static uint64_t wcet_gc_max_us, wcet_frame_max_us, wcet_pwr_max_us, wcet_thm_max_us;
 
 /* ---------- ISR latency telemetry (App 3) ---------- */
 static volatile int64_t  isr_entry_time_us;
@@ -190,13 +191,25 @@ static void downlink_task(void *arg)
 /* ============================================================
  *  Subsystem tasks -- mutex-protected seq, then hand a packet to the
  *  comms queue for framing (this is the new IPC pipeline piece).
+ *
+ *  NOTE: this task's WCET is timed manually below, NOT via the
+ *  MEASURE_WCET macro. The block builds a comm_packet_t with a
+ *  brace initializer -- { .subsystem_id = id, .seq = ..., ... } --
+ *  and those commas sit inside {} rather than (). The preprocessor
+ *  only tracks () nesting when splitting macro arguments on commas,
+ *  so passed through the macro this reads as more than two arguments
+ *  and fails to compile. Manual timing sidesteps it entirely.
  * ============================================================ */
 static const char *subsystem_name(int id) { return (id == 1) ? "power" : "thermal"; }
 
 static void subsystem_task(void *arg)
 {
     int id = (int)(uintptr_t)arg;
+    uint64_t *wmax = (id == 1) ? &wcet_pwr_max_us : &wcet_thm_max_us;
+
     for (;;) {
+        int64_t t0 = esp_timer_get_time();
+
         if (xSemaphoreTake(shared_mux, portMAX_DELAY) == pdTRUE) {
             int old = telemetry_seq;
             telemetry_seq = old + 1;
@@ -212,6 +225,11 @@ static void subsystem_task(void *arg)
             }
             if (id == 1) hb_power++; else hb_thermal++;
         }
+
+        int64_t dt = esp_timer_get_time() - t0;
+        if ((uint64_t)dt > *wmax) *wmax = (uint64_t)dt;
+
+        ESP_LOGI(TAG, "[%s] wcet_max=%llu us", subsystem_name(id), (unsigned long long)*wmax);
         vTaskDelay(pdMS_TO_TICKS(150 + (id * 73)));
     }
 }
@@ -345,6 +363,7 @@ static esp_err_t handle_root(httpd_req_t *req)
         "<table><tr><th>Metric</th><th>Value</th></tr>"
         "<tr><td>Ground-command latency (last / max)</td><td class=\"num\">%lld / %llu us</td></tr>"
         "<tr><td>Ground-command WCET max</td><td class=\"num\">%llu us</td></tr>"
+        "<tr><td>Power / thermal WCET max</td><td class=\"num\">%llu / %llu us</td></tr>"
         "<tr><td>Downlink channels available</td><td class=\"num\">%d / 3</td></tr>"
         "<tr><td>Comms queue depth</td><td class=\"num\">%d / %d</td></tr>"
         "<tr><td>Frames dropped</td><td class=\"num\">%lu</td></tr>"
@@ -357,6 +376,7 @@ static esp_err_t handle_root(httpd_req_t *req)
         "</table><p>Auto-refresh 1s.</p></body></html>",
         (long long)last_latency_us, (unsigned long long)latency_max_us,
         (unsigned long long)wcet_gc_max_us,
+        (unsigned long long)wcet_pwr_max_us, (unsigned long long)wcet_thm_max_us,
         avail, qdepth, COMMS_Q_DEPTH,
         (unsigned long)frames_dropped,
         (unsigned long long)wcet_frame_max_us,
@@ -428,6 +448,8 @@ static void task_monitor(void *arg)
         printf("gc_lat(last/max)=%lld/%llu us  gc_wcet=%llu us\n",
                (long long)last_latency_us, (unsigned long long)latency_max_us,
                (unsigned long long)wcet_gc_max_us);
+        printf("pwr_wcet=%llu us  thm_wcet=%llu us\n",
+               (unsigned long long)wcet_pwr_max_us, (unsigned long long)wcet_thm_max_us);
         printf("channels_avail=%d/3  q_depth=%d/%d  dropped=%lu  frame_wcet=%llu us\n",
                (int)uxSemaphoreGetCount(pool_sem), (int)uxQueueMessagesWaiting(comms_queue),
                COMMS_Q_DEPTH, (unsigned long)frames_dropped, (unsigned long long)wcet_frame_max_us);
@@ -503,4 +525,5 @@ void app_main(void)
      * that's realistic (a self-test running under real system load), but if
      * your numbers look noisy, temporarily comment the blocks above. */
     start_inversion_demo();
+}
 }
