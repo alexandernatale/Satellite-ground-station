@@ -4,7 +4,7 @@
 Theme: Space — Satellite Ground Station (S-Band Comms / Command & Control), tailored toward RF/Communications Systems Engineer roles.
 
 - **Wokwi:** (https://wokwi.com/projects/471037581910912001)
--  **Pages:** 
+-  **Pages:** https://alexandernatale.github.io/Satellite-ground-station/
 -  **Video:** 
 
 ---
