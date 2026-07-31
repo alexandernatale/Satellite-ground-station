@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "author": "EEE 4775 scaffold",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-esp32-s3-devkitc-1",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": { "builder": "esp-idf" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn_event",
+      "top": 179,
+      "left": -153.6,
+      "attrs": { "color": "blue", "label": "EVENT" }
+    },
+    { "type": "wokwi-led", "id": "led1", "top": -80.4, "left": 167, "attrs": { "color": "red" } },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": 62.4,
+      "left": 191.45,
+      "rotate": 90,
+      "attrs": { "value": "1000" }
+    }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "btn_event:1.l", "esp:18", "blue", [ "v0" ] ],
+    [ "btn_event:2.r", "esp:GND.1", "black", [ "v10", "h-50" ] ],
+    [ "led1:C", "esp:GND.1", "green", [ "v0", "h-191.6", "v268.8" ] ],
+    [ "led1:A", "r1:1", "green", [ "v0" ] ],
+    [ "r1:2", "esp:2", "green", [ "h-76.8", "v-30" ] ]
+  ],
+  "serialMonitor": { "display": "terminal" },
+  "dependencies": {}
+}
