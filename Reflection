@@ -1,0 +1,25 @@
+# Final Reflection
+
+Putting all five apps into one system was way more work than I expected going in. I figured "combine what you already built" would basically be copy-paste 
+grab App 4's sync primitives, glue on App 1's dashboard, done. That's not really how it went. Almost nothing carried over cleanly. Every app used slightly different naming conventions, made different assumptions about what ran where and at what priority, 
+and stitching them into one coherent comms system meant actually understanding *why* each piece was built the way it was, not just copying what it did. The theme helped a lot here, honestly — once I decided this was a "ground station comms engineer" system instead of five disconnected demos,
+it got a lot easier to figure out which pieces belonged together and which ones I was just forcing to fit.
+
+**What I'd do differently:** I'd budget way more time for actually running the thing and reading the logs, and less time writing code up front. Almost everything that ended up being interesting in my README didn't come from planning — it came from staring at Serial Monitor output and going 
+"wait, that number doesn't make sense." If I'd rushed straight to filling in the deliverable tables without actually letting the system run for a while and pressing buttons a bunch of times, I would've missed real bugs and just written down clean, plausible-sounding numbers that weren't actually true.
+I'd also start the WCET/latency data collection earlier in the process instead of treating it as the last step — by the time I got to it, I was already tired and wanted numbers fast, which is exactly the wrong mindset for measurement work.
+
+**What was harder than expected:** Getting good WCET and latency data is genuinely finicky in a way I didn't appreciate going into this. Numbers converge, then a separate run gives you a slightly different result,
+my power/thermal WCET came back as 36 and 37 microseconds on one run and 36 and 36 on another, close but not identical, and I had to decide what "the" number actually is instead of just reporting the first thing I saw.
+The priority-inversion numbers were even more of a shock as I expected something in the range of milliseconds, and instead got 12.19 seconds in mutex mode and 36.78 seconds in binary-semaphore mode, because the self-test was running under full system load instead of in isolation like the original demo.
+That's a real result, but it took a while to convince myself it wasn't a bug in my own measurement before I was willing to write it down as fact. I also hit a wall trying to just guess at things I couldn't directly observe, like what happens when you illegally take a mutex from an ISR context. 
+I wanted a clean, confident answer, and had to accept that some things genuinely need to be run and watched, not reasoned out from first principles ahead of time.
+
+**Most valuable thing I learned:** the bugs you find by accident are usually more interesting than the ones you plan to demonstrate. I set out to show priority inversion and an illegal ISR mutex take both intentional, both worked exactly as designed, both fine.
+But along the way I found a completely unplanned bug where rapid button presses silently dropped ground commands, because of a binary semaphore that can only hold one pending signal combined with a single shared timestamp variable instead of per-command state. And separately,
+I discovered that the illegal-ISR-mutex fault doesn't just corrupt one thing quietly the way I assumed it would — it freezes basically every other task in the system except the one the ISR directly wakes, while looking completely normal from the outside unless you're watching the right counters.
+Neither of those was something I went looking for. They only showed up because I was actually paying close attention to the data instead of assuming my design was correct just because it compiled and ran without crashing.
+
+If I'm being honest about the bigger picture, this project changed how I think about "done." A working demo and a *correct* real-time system aren't the same thing, and the gap between them is exactly where all the interesting engineering lives
+the stuff that doesn't show up until you deliberately try to break your own system and watch closely enough to notice when it actually breaks in a way you didn't expect. That's probably the single most useful habit I'm taking out of this class, and it's the part of this whole capstone
+I'd actually want to talk about in an interview: not that the system worked, but that I found real problems in it and could explain exactly why they happened.
