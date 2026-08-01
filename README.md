@@ -2,10 +2,10 @@
 
 **RTS Summer 2026 Capstone — Alex Natale**
 Theme: Space — Satellite Ground Station (S-Band Comms / Command & Control), tailored toward RF/Communications Systems Engineer roles.
+- **Wokwi:** `[[[PASTE]]](https://wokwi.com/projects/471037581910912001)` &nbsp;|&nbsp; **Pages:** `[[[PASTE]]](https://alexandernatale.github.io/Satellite-ground-station/)` &nbsp;|&nbsp; **Video:** `[[[PASTE]]](https://youtu.be/BEfm5XCs_7o
+)`
+- **Source code:** [main.c](https://github.com/alexandernatale/Satellite-ground-station/blob/main/main.c) · [diagram.json](https://github.com/alexandernatale/Satellite-ground-station/blob/main/diagram.json) · [full repo](https://github.com/alexandernatale/Satellite-ground-station)
 
-- **Wokwi:** (https://wokwi.com/projects/471037581910912001)
--  **Pages:** https://alexandernatale.github.io/Satellite-ground-station/
--  **Video:** https://youtu.be/BEfm5XCs_7o
 
 ---
 
